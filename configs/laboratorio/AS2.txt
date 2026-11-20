@@ -1,0 +1,138 @@
+! ================================================================
+! AS2 - ViajaYa (Variante A) - topologia: laboratorio
+! Generado automaticamente con generar.py + Jinja2. No editar a mano.
+! ================================================================
+enable
+configure terminal
+! ===== Paso 1 - Configuracion basica =====
+hostname AS2
+no ip domain-lookup
+banner motd #Acceso restringido. Solo personal autorizado de ViajaYa.#
+security passwords min-length 10
+enable algorithm-type scrypt secret Enable-A2026!
+service password-encryption
+line console 0
+ password Consola-A2026!
+ login
+ exec-timeout 5 0
+ logging synchronous
+ exit
+! ===== Paso 4 - VTP =====
+vtp domain VIAJAYA
+vtp version 2
+vtp password Vtp-A2026!
+vtp mode client
+!
+! ===== Paso 8 - Rapid PVST+ =====
+spanning-tree mode rapid-pvst
+!
+! ===== Paso 2 - EtherChannel 1 (LACP) =====
+interface range GigabitEthernet1/0/2 , GigabitEthernet1/0/3
+ switchport mode trunk
+ switchport nonegotiate
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,20,30,40,99,999
+ channel-group 1 mode passive
+ no shutdown
+ exit
+interface port-channel 1
+ switchport mode trunk
+ switchport nonegotiate
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,20,30,40,99,999
+ exit
+!
+! ===== Paso 3 - Troncales =====
+interface GigabitEthernet1/0/1
+ switchport mode trunk
+ switchport nonegotiate
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,20,30,40,99,999
+ no shutdown
+ exit
+!
+! ===== Paso 5 y 10 - Puertos de acceso + seguridad de capa 2 =====
+interface range GigabitEthernet1/0/4 - 8
+ description Hosts VLAN 10 VENTAS
+ switchport mode access
+ switchport access vlan 10
+ switchport nonegotiate
+ switchport port-security
+ switchport port-security maximum 2
+ switchport port-security mac-address sticky
+ switchport port-security violation shutdown
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no cdp enable
+ no shutdown
+ exit
+interface range GigabitEthernet1/0/9 - 12
+ description Hosts VLAN 20 RESERVAS
+ switchport mode access
+ switchport access vlan 20
+ switchport nonegotiate
+ switchport port-security
+ switchport port-security maximum 2
+ switchport port-security mac-address sticky
+ switchport port-security violation shutdown
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no cdp enable
+ no shutdown
+ exit
+interface range GigabitEthernet1/0/13 - 18
+ description Hosts VLAN 30 SISTEMAS
+ switchport mode access
+ switchport access vlan 30
+ switchport nonegotiate
+ switchport port-security
+ switchport port-security maximum 2
+ switchport port-security mac-address sticky
+ switchport port-security violation shutdown
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no cdp enable
+ no shutdown
+ exit
+interface range GigabitEthernet1/0/19 - 24
+ description Hosts VLAN 40 INVITADOS
+ switchport mode access
+ switchport access vlan 40
+ switchport nonegotiate
+ switchport port-security
+ switchport port-security maximum 2
+ switchport port-security mac-address sticky
+ switchport port-security violation shutdown
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no cdp enable
+ no shutdown
+ exit
+!
+! ===== Paso 5 - Puertos sin uso: VLAN 900 y apagados =====
+interface range GigabitEthernet1/1/1 - 4
+ switchport mode access
+ switchport access vlan 900
+ shutdown
+ exit
+!
+! ===== Paso 9 - Administracion por la VLAN 99 =====
+interface vlan 99
+ ip address 192.168.99.14 255.255.255.0
+ no shutdown
+ exit
+ip default-gateway 192.168.99.3
+!
+! ===== Paso 9 - SSH =====
+ip domain-name viajaya.lab
+username admin privilege 15 algorithm-type scrypt secret Admin-A2026!
+crypto key generate rsa general-keys modulus 1024
+ip ssh version 2
+login block-for 120 attempts 3 within 60
+line vty 0 15
+ login local
+ transport input ssh
+ exec-timeout 5 0
+ exit
+end
+write memory

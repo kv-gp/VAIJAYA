@@ -1,0 +1,99 @@
+# Ficha de la variante A — Agencia de viajes "ViajaYa"
+# Todos los datos de la práctica salen de aquí. El script calcula las IPs
+# (1.ª, 2.ª y 3.ª utilizable, exclusiones DHCP, etc.) a partir de estas redes.
+
+empresa: ViajaYa
+dominio: viajaya.lab
+banner: "Acceso restringido. Solo personal autorizado de ViajaYa."
+
+# Credenciales (mínimo 10 caracteres). Cámbienlas por las que usaron en el lab.
+credenciales:
+  enable_secret: "Enable-A2026!"
+  consola_password: "Consola-A2026!"
+  usuario: "admin"
+  usuario_secret: "Admin-A2026!"
+
+vtp:
+  dominio: VIAJAYA
+  version: 2
+  password: "Vtp-A2026!"
+  servidores: [DS1, DS2]
+  clientes: [AS1, AS2]
+  crea_vlans: DS1            # Las VLANs se crean solo en este servidor
+
+vlans:
+  - id: 10
+    nombre: VENTAS
+    ipv4: 192.168.10.0/24
+    ipv6: "2001:A:B:10::/64"
+    hsrp_activo: R1
+    puertos_acceso: [4, 8]
+  - id: 20
+    nombre: RESERVAS
+    ipv4: 192.168.20.0/24
+    ipv6: "2001:A:B:20::/64"
+    hsrp_activo: R1
+    puertos_acceso: [9, 12]
+  - id: 30
+    nombre: SISTEMAS
+    ipv4: 192.168.30.0/24
+    ipv6: "2001:A:B:30::/64"
+    hsrp_activo: R2
+    puertos_acceso: [13, 18]
+  - id: 40
+    nombre: INVITADOS
+    ipv4: 192.168.40.0/24
+    ipv6: "2001:A:B:40::/64"
+    hsrp_activo: R2
+    puertos_acceso: [19, 24]
+  - id: 99
+    nombre: GESTION
+    ipv4: 192.168.99.0/24
+    ipv6: null                # Solo IPv4
+    hsrp_activo: R1
+    gestion: true
+
+vlan_nativa: {id: 999, nombre: NATIVA}
+vlan_sin_uso: {id: 900, nombre: SIN_USO}
+
+# Regla de direccionamiento
+routers:
+  R1: {indice: 1, link_local: "FE80::1", dhcp_v4: [21, 130], dhcp_v6_subred: 1}
+  R2: {indice: 2, link_local: "FE80::2", dhcp_v4: [131, 254], dhcp_v6_subred: 2}
+hsrp:
+  version: 2
+  ip_virtual_indice: 3        # 3.ª IP utilizable
+  prioridad_activo: 150
+  offset_grupo_ipv6: 1000     # grupo IPv6 = VLAN + 1000
+
+ip_gestion_switches: {DS1: 11, DS2: 12, AS1: 13, AS2: 14}
+
+dhcp:
+  dns_v4: 8.8.8.8
+  dns_v6: "2001:4860:4860::8888"
+
+serial:
+  ipv4: 10.10.10.0/30
+  ipv6: "2001:A:B:FFFF::/64"
+  dce: R1
+  clock_rate: 128000
+
+etherchannel:
+  - grupo: 1
+    protocolo: LACP
+    distribucion: {equipo: DS1, modo: active}
+    acceso: {equipo: AS2, modo: passive}
+  - grupo: 2
+    protocolo: PAgP
+    distribucion: {equipo: DS2, modo: desirable}
+    acceso: {equipo: AS1, modo: auto}
+
+port_security:
+  maximo: 2
+  violacion: shutdown
+
+ssh:
+  modulo_rsa: 1024
+  version: 2
+  timeout_min: 5
+  bloqueo: {segundos: 120, intentos: 3, ventana: 60}

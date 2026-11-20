@@ -1,0 +1,46 @@
+# Interfaces del equipo físico del laboratorio (routers C8200L, switches C9200L-24),
+# tomadas de los show cdp neighbors y show etherchannel summary del equipo.
+nombre: laboratorio
+enable_scrypt: true
+
+routers:
+  R1:
+    lan: GigabitEthernet0/0/0
+    serial: Serial0/1/0       # Verifiquen el nombre con "show ip interface brief"
+    vty: "0 4"
+  R2:
+    lan: GigabitEthernet0/0/0
+    serial: Serial0/1/0
+    vty: "0 4"
+
+switches:
+  DS1:
+    rol: distribucion
+    router: R1
+    hacia_router: GigabitEthernet1/0/2
+    troncales: [GigabitEthernet1/0/1, GigabitEthernet1/0/3]   # a AS1 y a DS2
+    puertos_etherchannel: [GigabitEthernet1/0/4, GigabitEthernet1/0/5]
+    sin_uso: ["GigabitEthernet1/0/6 - 24", "GigabitEthernet1/1/1 - 4"]
+    vty: "0 15"
+  DS2:
+    rol: distribucion
+    router: R2
+    hacia_router: GigabitEthernet1/0/2
+    troncales: [GigabitEthernet1/0/1, GigabitEthernet1/0/3]   # a AS2 y a DS1
+    puertos_etherchannel: [GigabitEthernet1/0/4, GigabitEthernet1/0/5]
+    sin_uso: ["GigabitEthernet1/0/6 - 24", "GigabitEthernet1/1/1 - 4"]
+    vty: "0 15"
+  AS1:
+    rol: acceso
+    troncales: [GigabitEthernet1/0/1]                         # a DS1
+    puertos_etherchannel: [GigabitEthernet1/0/2, GigabitEthernet1/0/3]
+    prefijo_acceso: GigabitEthernet1/0/
+    sin_uso: ["GigabitEthernet1/1/1 - 4"]
+    vty: "0 15"
+  AS2:
+    rol: acceso
+    troncales: [GigabitEthernet1/0/1]                         # a DS2
+    puertos_etherchannel: [GigabitEthernet1/0/2, GigabitEthernet1/0/3]
+    prefijo_acceso: GigabitEthernet1/0/
+    sin_uso: ["GigabitEthernet1/1/1 - 4"]
+    vty: "0 15"

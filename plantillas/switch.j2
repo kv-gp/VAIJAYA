@@ -1,0 +1,100 @@
+{% import "base.j2" as base %}
+{% macro troncal(f, eq) %}
+ switchport mode trunk
+ switchport nonegotiate
+ switchport trunk native vlan {{ f.vlan_nativa.id }}
+ switchport trunk allowed vlan {{ eq.vlans_permitidas }}{% endmacro %}
+! ================================================================
+! {{ eq.hostname }} - {{ f.empresa }} (Variante A) - topologia: {{ topo.nombre }}
+! Generado automaticamente con generar.py + Jinja2. No editar a mano.
+! ================================================================
+enable
+configure terminal
+{{ base.basico(f, topo, eq) }}
+! ===== Paso 4 - VTP =====
+vtp domain {{ f.vtp.dominio }}
+vtp version {{ f.vtp.version }}
+vtp password {{ f.vtp.password }}
+vtp mode {{ eq.vtp_modo }}
+{% if eq.crea_vlans %}
+!
+! ===== Paso 5 - VLANs (solo en este servidor VTP) =====
+{% for v in eq.vlans %}
+vlan {{ v.id }}
+ name {{ v.nombre }}
+ exit
+{% endfor %}
+vlan {{ f.vlan_nativa.id }}
+ name {{ f.vlan_nativa.nombre }}
+ exit
+vlan {{ f.vlan_sin_uso.id }}
+ name {{ f.vlan_sin_uso.nombre }}
+ exit
+{% endif %}
+!
+! ===== Paso 8 - Rapid PVST+ =====
+spanning-tree mode rapid-pvst
+{% if eq.raiz_primaria %}
+spanning-tree vlan {{ eq.raiz_primaria }} root primary
+{% endif %}
+{% if eq.raiz_secundaria %}
+spanning-tree vlan {{ eq.raiz_secundaria }} root secondary
+{% endif %}
+!
+! ===== Paso 2 - EtherChannel {{ eq.etherchannel.grupo }} ({{ eq.etherchannel.protocolo }}) =====
+interface range {{ eq.etherchannel.puertos }}
+{{ troncal(f, eq) }}
+ channel-group {{ eq.etherchannel.grupo }} mode {{ eq.etherchannel.modo }}
+ no shutdown
+ exit
+interface port-channel {{ eq.etherchannel.grupo }}
+{{ troncal(f, eq) }}
+ exit
+!
+! ===== Paso 3 - Troncales =====
+{% for t in eq.troncales %}
+interface {{ t }}
+{{ troncal(f, eq) }}
+ no shutdown
+ exit
+{% endfor %}
+{% if eq.puertos_acceso %}
+!
+! ===== Paso 5 y 10 - Puertos de acceso + seguridad de capa 2 =====
+{% for p in eq.puertos_acceso %}
+interface range {{ p.rango }}
+ description Hosts VLAN {{ p.vlan }} {{ p.nombre }}
+ switchport mode access
+ switchport access vlan {{ p.vlan }}
+ switchport nonegotiate
+ switchport port-security
+ switchport port-security maximum {{ f.port_security.maximo }}
+ switchport port-security mac-address sticky
+ switchport port-security violation {{ f.port_security.violacion }}
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no cdp enable
+ no shutdown
+ exit
+{% endfor %}
+{% endif %}
+!
+! ===== Paso 5 - Puertos sin uso: VLAN {{ f.vlan_sin_uso.id }} y apagados =====
+{% for rango in eq.sin_uso %}
+interface range {{ rango }}
+ switchport mode access
+ switchport access vlan {{ f.vlan_sin_uso.id }}
+ shutdown
+ exit
+{% endfor %}
+!
+! ===== Paso 9 - Administracion por la VLAN {{ eq.gestion.vlan }} =====
+interface vlan {{ eq.gestion.vlan }}
+ ip address {{ eq.gestion.ip }} {{ eq.gestion.mascara }}
+ no shutdown
+ exit
+ip default-gateway {{ eq.gestion.gateway }}
+!
+{{ base.ssh(f, topo, eq) }}
+end
+write memory

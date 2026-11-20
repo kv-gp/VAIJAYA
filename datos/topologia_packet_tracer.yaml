@@ -1,0 +1,45 @@
+# Interfaces de la imagen de la práctica (Packet Tracer: routers ISR4321, switches 2960)
+nombre: packet_tracer
+enable_scrypt: false          # Packet Tracer no acepta "enable algorithm-type scrypt"
+
+routers:
+  R1:
+    lan: GigabitEthernet0/0/0
+    serial: Serial0/1/0       # Verifiquen el nombre del puerto serial en su .pkt
+    vty: "0 4"
+  R2:
+    lan: GigabitEthernet0/0/0
+    serial: Serial0/1/0
+    vty: "0 4"
+
+switches:
+  DS1:
+    rol: distribucion
+    router: R1
+    hacia_router: GigabitEthernet0/2
+    troncales: [FastEthernet0/2, GigabitEthernet0/1]   # a DS2 y a AS1
+    puertos_etherchannel: [FastEthernet0/1, FastEthernet0/3]
+    sin_uso: ["FastEthernet0/4 - 24"]
+    vty: "0 15"
+  DS2:
+    rol: distribucion
+    router: R2
+    hacia_router: GigabitEthernet0/2
+    troncales: [FastEthernet0/2, GigabitEthernet0/1]   # a DS1 y a AS2
+    puertos_etherchannel: [FastEthernet0/1, FastEthernet0/3]
+    sin_uso: ["FastEthernet0/4 - 24"]
+    vty: "0 15"
+  AS1:
+    rol: acceso
+    troncales: [GigabitEthernet0/1]                    # a DS1
+    puertos_etherchannel: [FastEthernet0/1, FastEthernet0/3]
+    prefijo_acceso: FastEthernet0/
+    sin_uso: [GigabitEthernet0/2]
+    vty: "0 15"
+  AS2:
+    rol: acceso
+    troncales: [GigabitEthernet0/1]                    # a DS2
+    puertos_etherchannel: [FastEthernet0/1, FastEthernet0/3]
+    prefijo_acceso: FastEthernet0/
+    sin_uso: [GigabitEthernet0/2]
+    vty: "0 15"

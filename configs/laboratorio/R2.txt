@@ -1,0 +1,187 @@
+! ================================================================
+! R2 - ViajaYa (Variante A) - topologia: laboratorio
+! Generado automaticamente con generar.py + Jinja2. No editar a mano.
+! ================================================================
+enable
+configure terminal
+! ===== Paso 1 - Configuracion basica =====
+hostname R2
+no ip domain-lookup
+banner motd #Acceso restringido. Solo personal autorizado de ViajaYa.#
+security passwords min-length 10
+enable algorithm-type scrypt secret Enable-A2026!
+service password-encryption
+line console 0
+ password Consola-A2026!
+ login
+ exec-timeout 5 0
+ logging synchronous
+ exit
+! ===== Paso 6 - Ruteo inter-VLAN, HSRPv2 y serial =====
+ipv6 unicast-routing
+!
+interface GigabitEthernet0/0/0
+ no ip address
+ no shutdown
+ exit
+!
+interface GigabitEthernet0/0/0.10
+ description VLAN 10 VENTAS
+ encapsulation dot1Q 10
+ ip address 192.168.10.2 255.255.255.0
+ ipv6 address FE80::2 link-local
+ ipv6 address 2001:A:B:10::2/64
+ ipv6 nd managed-config-flag
+ ipv6 nd other-config-flag
+ ipv6 nd prefix default no-autoconfig
+ ipv6 dhcp server POOL6-V10
+ standby version 2
+ standby 10 ip 192.168.10.3
+ standby 1010 ipv6 autoconfig
+ exit
+!
+interface GigabitEthernet0/0/0.20
+ description VLAN 20 RESERVAS
+ encapsulation dot1Q 20
+ ip address 192.168.20.2 255.255.255.0
+ ipv6 address FE80::2 link-local
+ ipv6 address 2001:A:B:20::2/64
+ ipv6 nd managed-config-flag
+ ipv6 nd other-config-flag
+ ipv6 nd prefix default no-autoconfig
+ ipv6 dhcp server POOL6-V20
+ standby version 2
+ standby 20 ip 192.168.20.3
+ standby 1020 ipv6 autoconfig
+ exit
+!
+interface GigabitEthernet0/0/0.30
+ description VLAN 30 SISTEMAS
+ encapsulation dot1Q 30
+ ip address 192.168.30.2 255.255.255.0
+ ipv6 address FE80::2 link-local
+ ipv6 address 2001:A:B:30::2/64
+ ipv6 nd managed-config-flag
+ ipv6 nd other-config-flag
+ ipv6 nd prefix default no-autoconfig
+ ipv6 dhcp server POOL6-V30
+ standby version 2
+ standby 30 ip 192.168.30.3
+ standby 30 priority 150
+ standby 30 preempt
+ standby 1030 ipv6 autoconfig
+ standby 1030 priority 150
+ standby 1030 preempt
+ exit
+!
+interface GigabitEthernet0/0/0.40
+ description VLAN 40 INVITADOS
+ encapsulation dot1Q 40
+ ip address 192.168.40.2 255.255.255.0
+ ipv6 address FE80::2 link-local
+ ipv6 address 2001:A:B:40::2/64
+ ipv6 nd managed-config-flag
+ ipv6 nd other-config-flag
+ ipv6 nd prefix default no-autoconfig
+ ipv6 dhcp server POOL6-V40
+ standby version 2
+ standby 40 ip 192.168.40.3
+ standby 40 priority 150
+ standby 40 preempt
+ standby 1040 ipv6 autoconfig
+ standby 1040 priority 150
+ standby 1040 preempt
+ exit
+!
+interface GigabitEthernet0/0/0.99
+ description VLAN 99 GESTION
+ encapsulation dot1Q 99
+ ip address 192.168.99.2 255.255.255.0
+ standby version 2
+ standby 99 ip 192.168.99.3
+ exit
+!
+interface GigabitEthernet0/0/0.999
+ description VLAN NATIVA
+ encapsulation dot1Q 999 native
+ exit
+!
+interface Serial0/1/0
+ description Enlace serial R1-R2
+ ip address 10.10.10.2 255.255.255.252
+ ipv6 address FE80::2 link-local
+ ipv6 address 2001:A:B:FFFF::2/64
+ no shutdown
+ exit
+!
+! ===== Paso 7 - DHCPv4 (rango propio, todo lo demas excluido) =====
+ip dhcp excluded-address 192.168.10.1 192.168.10.130
+ip dhcp excluded-address 192.168.20.1 192.168.20.130
+ip dhcp excluded-address 192.168.30.1 192.168.30.130
+ip dhcp excluded-address 192.168.40.1 192.168.40.130
+!
+ip dhcp pool V10-VENTAS
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.3
+ dns-server 8.8.8.8
+ domain-name viajaya.lab
+ exit
+!
+ip dhcp pool V20-RESERVAS
+ network 192.168.20.0 255.255.255.0
+ default-router 192.168.20.3
+ dns-server 8.8.8.8
+ domain-name viajaya.lab
+ exit
+!
+ip dhcp pool V30-SISTEMAS
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.3
+ dns-server 8.8.8.8
+ domain-name viajaya.lab
+ exit
+!
+ip dhcp pool V40-INVITADOS
+ network 192.168.40.0 255.255.255.0
+ default-router 192.168.40.3
+ dns-server 8.8.8.8
+ domain-name viajaya.lab
+ exit
+!
+! ===== Paso 7 - DHCPv6 con estado =====
+! Cada router entrega un /80 distinto dentro del /64 de la VLAN
+! (R1 -> ...:1::/80, R2 -> ...:2::/80), asi ningun host recibe la misma direccion de los dos.
+ipv6 dhcp pool POOL6-V10
+ address prefix 2001:A:B:10:2::/80
+ dns-server 2001:4860:4860::8888
+ domain-name viajaya.lab
+ exit
+ipv6 dhcp pool POOL6-V20
+ address prefix 2001:A:B:20:2::/80
+ dns-server 2001:4860:4860::8888
+ domain-name viajaya.lab
+ exit
+ipv6 dhcp pool POOL6-V30
+ address prefix 2001:A:B:30:2::/80
+ dns-server 2001:4860:4860::8888
+ domain-name viajaya.lab
+ exit
+ipv6 dhcp pool POOL6-V40
+ address prefix 2001:A:B:40:2::/80
+ dns-server 2001:4860:4860::8888
+ domain-name viajaya.lab
+ exit
+!
+! ===== Paso 9 - SSH =====
+ip domain-name viajaya.lab
+username admin privilege 15 algorithm-type scrypt secret Admin-A2026!
+crypto key generate rsa general-keys modulus 1024
+ip ssh version 2
+login block-for 120 attempts 3 within 60
+line vty 0 4
+ login local
+ transport input ssh
+ exec-timeout 5 0
+ exit
+end
+write memory

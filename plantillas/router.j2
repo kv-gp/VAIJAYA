@@ -1,0 +1,93 @@
+{% import "base.j2" as base %}
+! ================================================================
+! {{ eq.hostname }} - {{ f.empresa }} (Variante A) - topologia: {{ topo.nombre }}
+! Generado automaticamente con generar.py + Jinja2. No editar a mano.
+! ================================================================
+enable
+configure terminal
+{{ base.basico(f, topo, eq) }}
+! ===== Paso 6 - Ruteo inter-VLAN, HSRPv2 y serial =====
+ipv6 unicast-routing
+!
+interface {{ eq.lan }}
+ no ip address
+ no shutdown
+ exit
+{% for v in eq.vlans %}
+{% set r = v.por_router[eq.hostname] %}
+{% set activo = v.hsrp_activo == eq.hostname %}
+!
+interface {{ eq.lan }}.{{ v.id }}
+ description VLAN {{ v.id }} {{ v.nombre }}
+ encapsulation dot1Q {{ v.id }}
+ ip address {{ r.ipv4 }} {{ v.mascara }}
+{% if v.ipv6 %}
+ ipv6 address {{ eq.link_local }} link-local
+ ipv6 address {{ r.ipv6 }}
+ ipv6 nd managed-config-flag
+ ipv6 nd other-config-flag
+ ipv6 nd prefix default no-autoconfig
+ ipv6 dhcp server POOL6-V{{ v.id }}
+{% endif %}
+ standby version {{ f.hsrp.version }}
+ standby {{ v.grupo4 }} ip {{ v.virtual4 }}
+{% if activo %}
+ standby {{ v.grupo4 }} priority {{ f.hsrp.prioridad_activo }}
+ standby {{ v.grupo4 }} preempt
+{% endif %}
+{% if v.ipv6 %}
+ standby {{ v.grupo6 }} ipv6 autoconfig
+{% if activo %}
+ standby {{ v.grupo6 }} priority {{ f.hsrp.prioridad_activo }}
+ standby {{ v.grupo6 }} preempt
+{% endif %}
+{% endif %}
+ exit
+{% endfor %}
+!
+interface {{ eq.lan }}.{{ f.vlan_nativa.id }}
+ description VLAN NATIVA
+ encapsulation dot1Q {{ f.vlan_nativa.id }} native
+ exit
+!
+interface {{ eq.serial.interfaz }}
+ description Enlace serial R1-R2
+ ip address {{ eq.serial.ipv4 }} {{ eq.serial.mascara }}
+ ipv6 address {{ eq.link_local }} link-local
+ ipv6 address {{ eq.serial.ipv6 }}
+{% if eq.serial.clock_rate %}
+ clock rate {{ eq.serial.clock_rate }}
+{% endif %}
+ no shutdown
+ exit
+!
+! ===== Paso 7 - DHCPv4 (rango propio, todo lo demas excluido) =====
+{% for v in eq.vlans if v.es_usuarios %}
+{% for ini, fin in v.por_router[eq.hostname].excluidas %}
+ip dhcp excluded-address {{ ini }} {{ fin }}
+{% endfor %}
+{% endfor %}
+{% for v in eq.vlans if v.es_usuarios %}
+!
+ip dhcp pool V{{ v.id }}-{{ v.nombre }}
+ network {{ v.red4 }} {{ v.mascara }}
+ default-router {{ v.virtual4 }}
+ dns-server {{ f.dhcp.dns_v4 }}
+ domain-name {{ f.dominio }}
+ exit
+{% endfor %}
+!
+! ===== Paso 7 - DHCPv6 con estado =====
+! Cada router entrega un /80 distinto dentro del /64 de la VLAN
+! (R1 -> ...:1::/80, R2 -> ...:2::/80), asi ningun host recibe la misma direccion de los dos.
+{% for v in eq.vlans if v.es_usuarios %}
+ipv6 dhcp pool POOL6-V{{ v.id }}
+ address prefix {{ v.por_router[eq.hostname].pool6 }}
+ dns-server {{ f.dhcp.dns_v6 }}
+ domain-name {{ f.dominio }}
+ exit
+{% endfor %}
+!
+{{ base.ssh(f, topo, eq) }}
+end
+write memory

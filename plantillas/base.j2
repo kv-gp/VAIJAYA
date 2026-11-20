@@ -1,0 +1,36 @@
+{# Bloques comunes a los 6 equipos (pasos 1 y 9) #}
+{% macro basico(f, topo, eq) %}
+! ===== Paso 1 - Configuracion basica =====
+hostname {{ eq.hostname }}
+no ip domain-lookup
+banner motd #{{ f.banner }}#
+security passwords min-length 10
+{% if topo.enable_scrypt %}
+enable algorithm-type scrypt secret {{ f.credenciales.enable_secret }}
+{% else %}
+enable secret {{ f.credenciales.enable_secret }}
+{% endif %}
+service password-encryption
+line console 0
+ password {{ f.credenciales.consola_password }}
+ login
+ exec-timeout {{ f.ssh.timeout_min }} 0
+ logging synchronous
+ exit{% endmacro %}
+
+{% macro ssh(f, topo, eq) %}
+! ===== Paso 9 - SSH =====
+ip domain-name {{ f.dominio }}
+{% if topo.enable_scrypt %}
+username {{ f.credenciales.usuario }} privilege 15 algorithm-type scrypt secret {{ f.credenciales.usuario_secret }}
+{% else %}
+username {{ f.credenciales.usuario }} privilege 15 secret {{ f.credenciales.usuario_secret }}
+{% endif %}
+crypto key generate rsa general-keys modulus {{ f.ssh.modulo_rsa }}
+ip ssh version {{ f.ssh.version }}
+login block-for {{ f.ssh.bloqueo.segundos }} attempts {{ f.ssh.bloqueo.intentos }} within {{ f.ssh.bloqueo.ventana }}
+line vty {{ eq.vty }}
+ login local
+ transport input ssh
+ exec-timeout {{ f.ssh.timeout_min }} 0
+ exit{% endmacro %}
