@@ -10,7 +10,7 @@ banner: "Acceso restringido. Solo personal autorizado de ViajaYa."
 credenciales:
   enable_secret: "cisco12345"
   consola_password: "cisco12345"
-  usuario: "admin"
+  usuario: "gmedina"
   usuario_secret: "cisco12345"
 
 vtp:

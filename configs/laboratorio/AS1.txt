@@ -125,7 +125,7 @@ ip default-gateway 192.168.99.3
 !
 ! ===== Paso 9 - SSH =====
 ip domain-name viajaya.lab
-username admin privilege 15 algorithm-type scrypt secret cisco12345
+username gmedina privilege 15 algorithm-type scrypt secret cisco12345
 crypto key generate rsa general-keys modulus 1024
 ip ssh version 2
 login block-for 120 attempts 3 within 60
