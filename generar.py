@@ -153,6 +153,9 @@ def contexto_switch(nombre, ficha, topo, vlans):
 
 def generar(ruta_ficha, ruta_topologia, carpeta_salida):
     ficha = cargar_yaml(ruta_ficha)
+    for clave, valor in ficha["credenciales"].items():
+        if clave != "usuario" and len(str(valor)) < 10:
+            raise SystemExit(f"Error: la contraseña '{clave}' tiene menos de 10 caracteres (Paso 1).")
     topo = cargar_yaml(ruta_topologia)
     vlans = preparar_vlans(ficha)
 

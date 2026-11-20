@@ -9,10 +9,10 @@ hostname R1
 no ip domain-lookup
 banner motd #Acceso restringido. Solo personal autorizado de ViajaYa.#
 security passwords min-length 10
-enable secret Enable-A2026!
+enable secret cisco12345
 service password-encryption
 line console 0
- password Consola-A2026!
+ password cisco12345
  login
  exec-timeout 5 0
  logging synchronous
@@ -181,7 +181,7 @@ ipv6 dhcp pool POOL6-V40
 !
 ! ===== Paso 9 - SSH =====
 ip domain-name viajaya.lab
-username admin privilege 15 secret Admin-A2026!
+username admin privilege 15 secret cisco12345
 crypto key generate rsa general-keys modulus 1024
 ip ssh version 2
 login block-for 120 attempts 3 within 60

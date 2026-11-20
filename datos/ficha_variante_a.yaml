@@ -6,12 +6,12 @@ empresa: ViajaYa
 dominio: viajaya.lab
 banner: "Acceso restringido. Solo personal autorizado de ViajaYa."
 
-# Credenciales (mínimo 10 caracteres). Cámbienlas por las que usaron en el lab.
+# Credenciales (mínimo 10 caracteres), las mismas en los 6 equipos.
 credenciales:
-  enable_secret: "Enable-A2026!"
-  consola_password: "Consola-A2026!"
+  enable_secret: "cisco12345"
+  consola_password: "cisco12345"
   usuario: "admin"
-  usuario_secret: "Admin-A2026!"
+  usuario_secret: "cisco12345"
 
 vtp:
   dominio: VIAJAYA

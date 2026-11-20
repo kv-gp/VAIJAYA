@@ -75,7 +75,7 @@ Para la demostración: `show etherchannel summary`, `show interfaces trunk`, `sh
 
 ## Notas
 
-- Las contraseñas de `credenciales` en la ficha son de ejemplo (≥ 10 caracteres). Cámbienlas por las suyas.
+- Las contraseñas de `credenciales` deben tener 10 caracteres o más: el script se detiene con un error si alguna es más corta.
 - Verifiquen el nombre del puerto serial (`Serial0/1/0`) con `show ip interface brief` en R1 y R2.
 - Si el equipo ya tiene llaves RSA, `crypto key generate rsa` pregunta si reemplazarlas: respondan `yes`.
 - Si su versión de IOS XE no acepta llaves de 1024 bits, cambien `ssh.modulo_rsa` a 2048 en la ficha y regeneren.
