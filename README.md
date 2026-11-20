@@ -12,8 +12,8 @@ viajaya-automatizacion/
 ├── generar.py                       # Script principal
 ├── datos/
 │   ├── ficha_variante_a.yaml        # Datos de la ficha (VLANs, IPs, HSRP, DHCP, VTP, SSH...)
-│   ├── topologia_packet_tracer.yaml # Interfaces de la imagen (2960 + ISR4321)
-│   └── topologia_laboratorio.yaml   # Interfaces del equipo físico (C9200L + C8200L)
+│   ├── topologia_laboratorio.yaml   # Interfaces del equipo físico (C9200L-24 + C8200L) — por defecto
+│   └── topologia_packet_tracer.yaml # Interfaces de la imagen de la práctica (opcional)
 ├── plantillas/
 │   ├── base.j2                      # Pasos 1 y 9 (comunes a los 6 equipos)
 │   ├── router.j2                    # Pasos 6 y 7 (subinterfaces, HSRPv2, serial, DHCPv4/v6)
@@ -30,33 +30,45 @@ La **ficha** solo tiene los datos de la variante; el script calcula todo lo dem�
 - Raíz de Rapid PVST+: el switch de distribución conectado al router HSRP activo de cada VLAN es primario, el otro secundario.
 - Grupo HSRP IPv6 = VLAN + 1000, prioridad 150 y `preempt` solo en el router activo.
 
-La **topología** solo tiene nombres de interfaces. Así la misma ficha genera la config
-para Packet Tracer o para el equipo físico sin tocar las plantillas.
+La **topología** solo tiene nombres de interfaces, tomados de `show cdp neighbors` y
+`show etherchannel summary` del equipo físico:
+
+| Equipo | Hacia router | Troncales | EtherChannel |
+|---|---|---|---|
+| DS1 | Gi1/0/2 → R1 Gi0/0/0 | Gi1/0/1 → AS1, Gi1/0/3 → DS2 | Po1 (Gi1/0/4-5) → AS2 |
+| DS2 | Gi1/0/2 → R2 Gi0/0/0 | Gi1/0/1 → AS2, Gi1/0/3 → DS1 | Po2 (Gi1/0/4-5) → AS1 |
+| AS1 | — | Gi1/0/1 → DS1 | Po2 (Gi1/0/2-3) → DS2 |
+| AS2 | — | Gi1/0/1 → DS2 | Po1 (Gi1/0/2-3) → DS1 |
+
+Como la topología está separada de la ficha, la misma ficha también genera la config
+para la topología de la imagen (`topologia_packet_tracer.yaml`) sin tocar las plantillas.
 
 ## Uso
 
 ```bash
 pip install -r requirements.txt
 
-# Configuración para Packet Tracer (por defecto)
+# Configuración para el equipo físico del laboratorio (por defecto)
 python generar.py
 
-# Configuración para el equipo físico del laboratorio
-python generar.py --topologia datos/topologia_laboratorio.yaml
+# Opcional: topología de la imagen de la práctica
+python generar.py --topologia datos/topologia_packet_tracer.yaml
 
 # Pruebas
 python -m pytest -q
 ```
 
-Los archivos quedan en `configs/packet_tracer/` y `configs/laboratorio/`.
+Los archivos quedan en `configs/laboratorio/` (y `configs/packet_tracer/` si generan esa).
 
-## Cómo cargarlo en Packet Tracer
+## Cómo cargarlo en el equipo físico
 
-Peguen cada archivo en la pestaña **CLI** del equipo, en este orden:
-
-1. **DS1** primero: es el servidor VTP que crea las VLANs.
-2. **DS2**, luego **AS1** y **AS2** (aprenden las VLANs por VTP).
-3. **R1** y **R2**.
+1. Partan de equipos limpios (`write erase`, `delete flash:vlan.dat` en los switches y `reload`).
+2. Conéctense por consola (PuTTY / Tera Term) y peguen cada archivo de `configs/laboratorio/` en este orden:
+   1. **DS1** primero: es el servidor VTP que crea las VLANs.
+   2. **DS2**, luego **AS1** y **AS2** (aprenden las VLANs por VTP).
+   3. **R1** y **R2**.
+3. Peguen por bloques (cada sección `! ===== Paso ... =====`) o configuren un retardo entre líneas
+   en la terminal: por consola a 9600 baudios, un pegado muy largo puede perder caracteres.
 
 Para la demostración: `show etherchannel summary`, `show interfaces trunk`, `show vlan brief`,
 `show standby brief`, `show spanning-tree vlan 10`, `show ip dhcp binding`, `show ipv6 dhcp binding`.
@@ -64,5 +76,6 @@ Para la demostración: `show etherchannel summary`, `show interfaces trunk`, `sh
 ## Notas
 
 - Las contraseñas de `credenciales` en la ficha son de ejemplo (≥ 10 caracteres). Cámbienlas por las suyas.
-- Verifiquen el nombre del puerto serial (`Serial0/1/0`) en su `.pkt` y en el router físico.
-- Packet Tracer no acepta `enable algorithm-type scrypt`; por eso la topología de PT usa `enable secret`.
+- Verifiquen el nombre del puerto serial (`Serial0/1/0`) con `show ip interface brief` en R1 y R2.
+- Si el equipo ya tiene llaves RSA, `crypto key generate rsa` pregunta si reemplazarlas: respondan `yes`.
+- Si su versión de IOS XE no acepta llaves de 1024 bits, cambien `ssh.modulo_rsa` a 2048 en la ficha y regeneren.

@@ -5,8 +5,8 @@ Lee la ficha de la variante (YAML) y una topología (YAML con los nombres de
 interfaces), calcula el direccionamiento y renderiza las plantillas Jinja2.
 
 Uso:
-    python generar.py                                   # Packet Tracer
-    python generar.py --topologia datos/topologia_laboratorio.yaml
+    python generar.py                                   # Equipo fisico del laboratorio
+    python generar.py --topologia datos/topologia_packet_tracer.yaml
 """
 import argparse
 import ipaddress
@@ -179,7 +179,7 @@ def generar(ruta_ficha, ruta_topologia, carpeta_salida):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--ficha", default=RAIZ / "datos" / "ficha_variante_a.yaml")
-    p.add_argument("--topologia", default=RAIZ / "datos" / "topologia_packet_tracer.yaml")
+    p.add_argument("--topologia", default=RAIZ / "datos" / "topologia_laboratorio.yaml")
     p.add_argument("--salida", default=RAIZ / "configs")
     args = p.parse_args()
     print("Configuraciones generadas:")
